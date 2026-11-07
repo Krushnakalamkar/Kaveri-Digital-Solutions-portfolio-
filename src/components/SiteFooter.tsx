@@ -119,9 +119,16 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({ onNavigate }) => {
               LinkedIn
             </a>
           ) : null}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px' }}>
             <a href="/privacy" onClick={(e) => handleNav(e, '/privacy')}>
               Privacy notice
+            </a>
+            <a
+              href="/download-code"
+              download="kaveri-digital-solutions-full-stack-code.zip"
+              style={{ textDecoration: 'underline' }}
+            >
+              Download Full Code (.zip)
             </a>
             <a
               href="/admin/dashboard"

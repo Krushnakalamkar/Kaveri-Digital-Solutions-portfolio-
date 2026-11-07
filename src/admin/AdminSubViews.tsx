@@ -1980,6 +1980,15 @@ export const AdminSettingsView: React.FC = () => {
           CMS Backup & Seed Reset
         </h2>
         <div className="flex flex-wrap items-center gap-3">
+          <a
+            href="/kaveri-digital-solutions-source.zip"
+            download="kaveri-digital-solutions-source.zip"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#6D001A] text-white text-xs sm:text-sm font-medium hover:bg-[#8E092B] cursor-pointer"
+          >
+            <Download size={15} strokeWidth={1.75} />
+            <span>Download Full Website Code (.zip)</span>
+          </a>
+
           <button
             type="button"
             onClick={handleExportJson}

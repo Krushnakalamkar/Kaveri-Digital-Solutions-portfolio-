@@ -71,7 +71,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({ currentPath, onNavigate }) =
           <div className="space-y-1">
             <h1 className="font-display-app text-2xl font-bold text-white">Studio Sign In</h1>
             <p className="text-xs text-slate-300">
-              Sign in to manage projects, 47 services, enquiries, and visitor intake records.
+              Sign in to manage projects, {db.services.length} services, enquiries, and visitor intake records.
             </p>
           </div>
 
@@ -223,6 +223,13 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({ currentPath, onNavigate }) =
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            <a
+              href="/kaveri-digital-solutions-source.zip"
+              download="kaveri-digital-solutions-source.zip"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-[#08111f] text-white text-xs sm:text-sm font-medium hover:bg-slate-800 cursor-pointer"
+            >
+              <span>Download Full Source Code (.zip)</span>
+            </a>
             <button
               type="button"
               onClick={() => onNavigate('/admin/projects/new')}
@@ -272,9 +279,11 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({ currentPath, onNavigate }) =
               onClick={() => onNavigate('/admin/services')}
               className="p-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-left cursor-pointer"
             >
-              <div className="font-semibold text-sm text-slate-900">Manage 47 Services</div>
+              <div className="font-semibold text-sm text-slate-900">
+                Manage {db.services.length} Services
+              </div>
               <div className="text-xs text-slate-500 mt-0.5">
-                Edit 6 categories & toggle offerings
+                Edit {db.categories.length} categories & toggle offerings
               </div>
             </button>
             <button

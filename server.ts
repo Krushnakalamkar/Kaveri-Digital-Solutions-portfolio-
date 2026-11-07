@@ -18,6 +18,48 @@ import fs from 'fs';
 
 const DATA_DIR = path.join(__dirname, 'data');
 const SHEET_STORE_FILE = path.join(DATA_DIR, 'visitor-intake-sheet.json');
+const MESSAGES_STORE_FILE = path.join(DATA_DIR, 'contact-messages.json');
+
+export interface StoredContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  budget?: string;
+  service?: string;
+  projectType?: string;
+  message: string;
+  attachmentName?: string;
+  attachmentDataUrl?: string;
+  recipientEmail: string;
+  businessEmail: string;
+  read: boolean;
+  createdAt: string;
+}
+
+function readStoredMessages(): StoredContactMessage[] {
+  try {
+    if (fs.existsSync(MESSAGES_STORE_FILE)) {
+      const raw = fs.readFileSync(MESSAGES_STORE_FILE, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {
+    // ignore read error
+  }
+  return [];
+}
+
+function writeStoredMessages(messages: StoredContactMessage[]): void {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(MESSAGES_STORE_FILE, JSON.stringify(messages, null, 2), 'utf8');
+  } catch {
+    // ignore write error
+  }
+}
 
 export interface StoredSheetEntry {
   id: string;
@@ -562,6 +604,102 @@ async function startServer() {
       });
     }
   });
+
+  // GET /portfolio-api/messages — returns all stored contact enquiries
+  app.get('/portfolio-api/messages', (_req, res) => {
+    const messages = readStoredMessages();
+    res.status(200).json({
+      ok: true,
+      primaryEmail: 'kalamkarkrushna007@gmail.com',
+      businessEmail: 'icondigital.pvt.ltd@gmail.com',
+      count: messages.length,
+      messages,
+    });
+  });
+
+  // POST /portfolio-api/messages — saves a new contact enquiry from /contact
+  app.post('/portfolio-api/messages', (req, res) => {
+    try {
+      const body = req.body || {};
+      const name = String(body.name || '').trim();
+      const email = String(body.email || '').trim();
+      const message = String(body.message || '').trim();
+
+      if (name.length < 2) {
+        res.status(400).json({ ok: false, error: 'Please enter your name.' });
+        return;
+      }
+      if (!email || !email.includes('@')) {
+        res.status(400).json({ ok: false, error: 'Please enter a valid email address.' });
+        return;
+      }
+      if (message.length < 10) {
+        res.status(400).json({ ok: false, error: 'Please enter at least 10 characters.' });
+        return;
+      }
+
+      const now = new Date();
+      const created: StoredContactMessage = {
+        id: body.id ? String(body.id) : `msg-${Date.now()}`,
+        name,
+        email,
+        phone: body.phone ? String(body.phone).trim() : undefined,
+        budget: body.budget ? String(body.budget).trim() : undefined,
+        service: body.service ? String(body.service).trim() : undefined,
+        projectType: body.projectType ? String(body.projectType).trim() : undefined,
+        message,
+        attachmentName: body.attachmentName ? String(body.attachmentName) : undefined,
+        attachmentDataUrl: body.attachmentDataUrl ? String(body.attachmentDataUrl) : undefined,
+        recipientEmail: String(body.recipientEmail || 'kalamkarkrushna007@gmail.com'),
+        businessEmail: String(body.businessEmail || 'icondigital.pvt.ltd@gmail.com'),
+        read: false,
+        createdAt: body.createdAt || `${formatIndiaDate(now)}, ${formatIndiaTime(now)}`,
+      };
+
+      const existing = readStoredMessages();
+      writeStoredMessages([created, ...existing.filter((m) => m.id !== created.id)]);
+
+      res.status(201).json({
+        ok: true,
+        recipientEmail: created.recipientEmail,
+        businessEmail: created.businessEmail,
+        entry: created,
+      });
+    } catch (err: any) {
+      res.status(500).json({ ok: false, error: err?.message || 'Failed to save enquiry.' });
+    }
+  });
+
+  // PATCH /portfolio-api/messages/:id — toggle read status
+  app.patch('/portfolio-api/messages/:id', (req, res) => {
+    const id = req.params.id;
+    const existing = readStoredMessages();
+    const updated = existing.map((m) => (m.id === id ? { ...m, read: !m.read } : m));
+    writeStoredMessages(updated);
+    res.status(200).json({ ok: true });
+  });
+
+  // DELETE /portfolio-api/messages/:id — delete an enquiry
+  app.delete('/portfolio-api/messages/:id', (req, res) => {
+    const id = req.params.id;
+    const existing = readStoredMessages();
+    const filtered = existing.filter((m) => m.id !== id);
+    writeStoredMessages(filtered);
+    res.status(200).json({ ok: true });
+  });
+
+  // GET /download-code & /kaveri-digital-solutions-source.zip — forces direct download of the full-stack codebase ZIP
+  const handleCodeZipDownload = (_req: express.Request, res: express.Response) => {
+    const zipPath = path.join(__dirname, 'public', 'kaveri-digital-solutions-source.zip');
+    if (fs.existsSync(zipPath)) {
+      res.download(zipPath, 'kaveri-digital-solutions-full-stack-code.zip');
+      return;
+    }
+    res.status(404).json({ ok: false, error: 'Source archive not found.' });
+  };
+
+  app.get('/download-code', handleCodeZipDownload);
+  app.get('/kaveri-digital-solutions-source.zip', handleCodeZipDownload);
 
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');

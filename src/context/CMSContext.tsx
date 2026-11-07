@@ -514,6 +514,27 @@ export const CMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .catch(() => {
         // ignore network error
       });
+
+    fetch('/portfolio-api/messages')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!active || !data || !Array.isArray(data.messages) || data.messages.length === 0) return;
+        setDb((prev) => {
+          const existingIds = new Set(prev.messages.map((m) => m.id));
+          const newServerMsgs: ContactMessage[] = data.messages.filter(
+            (m: any) => m && m.id && !existingIds.has(m.id)
+          );
+          if (newServerMsgs.length === 0) return prev;
+          return {
+            ...prev,
+            messages: [...newServerMsgs, ...prev.messages],
+          };
+        });
+      })
+      .catch(() => {
+        // ignore network error
+      });
+
     return () => {
       active = false;
     };
@@ -932,14 +953,42 @@ export const CMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       messages: [newMsg, ...prev.messages],
     }));
+
+    fetch('/portfolio-api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...newMsg,
+        recipientEmail: db.profile.primaryEmail,
+        businessEmail: db.profile.businessEmail,
+      }),
+    }).catch(() => {
+      // preserve local state if offline
+    });
+
     return newMsg;
   };
 
   const toggleMessageRead = (id: string) => {
+    let nextReadState = true;
     setDb((prev) => ({
       ...prev,
-      messages: prev.messages.map((m) => (m.id === id ? { ...m, read: !m.read } : m)),
+      messages: prev.messages.map((m) => {
+        if (m.id === id) {
+          nextReadState = !m.read;
+          return { ...m, read: nextReadState };
+        }
+        return m;
+      }),
     }));
+
+    fetch(`/portfolio-api/messages/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ read: nextReadState }),
+    }).catch(() => {
+      // ignore offline
+    });
   };
 
   const deleteMessage = (id: string) => {
@@ -947,6 +996,12 @@ export const CMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       messages: prev.messages.filter((m) => m.id !== id),
     }));
+
+    fetch(`/portfolio-api/messages/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    }).catch(() => {
+      // ignore offline
+    });
   };
 
   const importDatabaseJson = (jsonString: string): { ok: boolean; error?: string } => {

@@ -175,12 +175,32 @@ export const ContactPage: React.FC<ContactPageProps> = ({ initialService = '' })
               <CheckCircle2 size={26} strokeWidth={1.5} aria-hidden="true" />
               <h2>Message received.</h2>
               <p>
-                Your enquiry was emailed to {db.profile.primaryEmail}. I will reply to the email
-                address you provided.
+                Your enquiry has been saved to our Studio Inbox and routed to{' '}
+                <strong>{db.profile.primaryEmail}</strong> (and business desk{' '}
+                <strong>{db.profile.businessEmail}</strong>). I will reply directly to{' '}
+                <strong>{email}</strong>.
               </p>
-              <button type="button" className="button-light focus-ring" onClick={resetForm}>
-                Send another message
-              </button>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <a
+                  href={`mailto:${db.profile.primaryEmail}?cc=${encodeURIComponent(
+                    db.profile.businessEmail
+                  )}&subject=${encodeURIComponent(
+                    `Project Enquiry${service ? `: ${service}` : ''} — ${name}`
+                  )}&body=${encodeURIComponent(
+                    `Name: ${name}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\nService: ${
+                      service || 'General'
+                    }\nBudget: ${budget || 'N/A'}\nProject Type: ${
+                      projectType || 'N/A'
+                    }\n\nProject Details:\n${message}`
+                  )}`}
+                  className="button-primary focus-ring"
+                >
+                  Open in Email App ({db.profile.primaryEmail})
+                </a>
+                <button type="button" className="button-light focus-ring" onClick={resetForm}>
+                  Send another message
+                </button>
+              </div>
             </div>
           ) : (
             <form className="contact-form" onSubmit={handleSubmit}>
